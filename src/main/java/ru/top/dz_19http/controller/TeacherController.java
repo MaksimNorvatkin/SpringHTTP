@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.top.dz_19http.dto.TeacherDTO;
 import ru.top.dz_19http.models.Teacher;
+import ru.top.dz_19http.models.TeacherValidator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -135,34 +136,73 @@ public class TeacherController {
 
     @PostMapping("/add")
     public String add(@RequestBody TeacherDTO teacherDTO) {
-        if (!teacherDTO.getFirstName().isEmpty() || !teacherDTO.getLastName().isEmpty()) {
-            teachers.add(teacherDTO.convert());
+        String error = TeacherValidator.validate(teacherDTO, teachers);
+        if (error != null) {
+            return error;
+        }
+        teachers.add(teacherDTO.convert());
+        return "success";
+    }
+    @PostMapping("/add-bulk")
+    public String addBulk(@RequestBody List<TeacherDTO> teacherDTOS) {
+        int added = 0;
+        for (TeacherDTO teacherDTO : teacherDTOS) {
+            String error = TeacherValidator.validate(teacherDTO, teachers);
+            if (error == null) {
+                teachers.add(teacherDTO.convert());
+                added++;
+            }
+        }
+        return "Added: " + added + " teachers.";
+    }
+
+    @PutMapping("/update/{id}")
+    public String updateById(@RequestBody TeacherDTO teacherDTO,
+                             @PathVariable Integer id) {
+        String error = TeacherValidator.validate(teacherDTO, teachers);
+        if (error != null) {
+            return error;
+        }
+        Teacher foundTeacher = teachers.stream()
+                .filter(teacher -> teacher.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if (foundTeacher == null) {
+            return "Teacher not found";
+        }
+        foundTeacher.setFirstName(teacherDTO.getFirstName());
+        foundTeacher.setLastName(teacherDTO.getLastName());
+        foundTeacher.setSubject(teacherDTO.getSubject());
+        foundTeacher.setExperience(teacherDTO.getExperience());
+        foundTeacher.setSalary(teacherDTO.getSalary());
+        foundTeacher.setEmail(teacherDTO.getEmail());
+        foundTeacher.setAtive(teacherDTO.getAtive());
+
+        return "success";
+    }
+
+    @PatchMapping("/deactivate/{id}")
+    public String deactivate(@PathVariable Integer id) {
+        if (teachers.stream().anyMatch(teacher -> teacher.getId().equals(id))) {
+            teachers.stream()
+                    .filter(teacher -> teacher.getId().equals(id))
+                    .forEach(teacher -> teacher.setAtive(false));
             return "success";
         }
         return "fail";
     }
 
-    @PatchMapping("/deactivate/{id}")
-    public String  deactivate(@PathVariable Integer id){
+    @PatchMapping("/activate/{id}")
+    public String activate(@PathVariable Integer id) {
         if (teachers.stream().anyMatch(teacher -> teacher.getId().equals(id))) {
             teachers.stream()
                     .filter(teacher -> teacher.getId().equals(id))
-                    .forEach(teacher ->  teacher.setAtive(false));
-            return  "success";
+                    .forEach(teacher -> teacher.setAtive(true));
+            return "success";
         }
-        return  "fail";
+        return "fail";
     }
 
-    @PatchMapping("/activate/{id}")
-    public String  activate(@PathVariable Integer id){
-        if (teachers.stream().anyMatch(teacher -> teacher.getId().equals(id))) {
-            teachers.stream()
-                    .filter(teacher -> teacher.getId().equals(id))
-                    .forEach(teacher ->  teacher.setAtive(true));
-            return  "success";
-        }
-        return  "fail";
-    }
     @PatchMapping("/increase-salary/{id}")
     public String upSalary(@PathVariable Integer id,
                            @RequestParam Integer percent) {
@@ -174,14 +214,14 @@ public class TeacherController {
                 .map(teacher -> teacher.getSalary() * (1 + percent / 100.0))
                 .allMatch(newSalary -> newSalary <= 100000.0);
         if (!isValidSalary) {
-            return  "fail";
+            return "fail";
         }
         teachers.stream()
                 .filter(teacher -> teacher.getId().equals(id))
                 .forEach(teacher -> {
                     teacher.setSalary(teacher.getSalary() * (1 + percent / 100.0));
                 });
-        return  "success";
+        return "success";
     }
 
     @DeleteMapping("/delete/{id}")
