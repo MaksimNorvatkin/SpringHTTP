@@ -22,7 +22,7 @@ public class TeacherController {
         teachers.add(new Teacher("Жора", "Абдулаев", "Математика", 10, 1000.0, "1", true));
         teachers.add(new Teacher("Саша", "Абдулаев", "Физкультура", 2, 200.0, "2", false));
         teachers.add(new Teacher("Жора", "Григорьев", "Математика", 3, 300.0, "2", true));
-        teachers.add(new Teacher("Гена", "Петров", "Литература", 4, 400.0, "2", true));
+        teachers.add(new Teacher("Гена", "Петров", "Литература", 4, 400.0, "2", false));
         teachers.add(new Teacher("Вася", "Ельшин", "Физика", 6, 600.0, "2", false));
     }
 
@@ -91,15 +91,14 @@ public class TeacherController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<TeacherDTO>> filterByExpSalary( //Как я верну ошибку если мы еще не проходили ResponseEntity, а надо вернуть List
-            @RequestParam(name = "minExp") Integer minExp,
-            @RequestParam(name = "maxExp") Integer maxExp,
-            @RequestParam(name = "minSalary") Double minSalary,
-            @RequestParam(name = "maxSalary") Double maxSalary
-    ){
-        if(minExp > maxExp || minSalary > maxSalary){
-            return  ResponseEntity.notFound().build();
-        }
-        else  {
+                                                               @RequestParam(name = "minExp") Integer minExp,
+                                                               @RequestParam(name = "maxExp") Integer maxExp,
+                                                               @RequestParam(name = "minSalary") Double minSalary,
+                                                               @RequestParam(name = "maxSalary") Double maxSalary
+    ) {
+        if (minExp > maxExp || minSalary > maxSalary) {
+            return ResponseEntity.notFound().build();
+        } else {
             List<TeacherDTO> result = teachers.stream()
                     .filter(t -> (t.getExperience() >= minExp && t.getExperience() <= maxExp)
                             && (t.getSalary() >= minSalary) && t.getSalary() <= maxSalary)
@@ -112,18 +111,18 @@ public class TeacherController {
     @GetMapping("/active")
     public List<TeacherDTO> active() {
         return teachers.stream()
-                .filter(teacher -> teacher.getAtive()==true)
+                .filter(teacher -> teacher.getAtive() == true)
                 .map(Teacher::convert)
                 .toList();
     }
 
     @GetMapping("/count")
-    public Integer count(){
-        return  teachers.size();
+    public Integer count() {
+        return teachers.size();
     }
 
     @GetMapping("/count-by-subject")
-    public Map<String, Integer> countBySubject(){
+    public Map<String, Integer> countBySubject() {
         return teachers.stream()
                 .collect(Collectors.groupingBy(
                         Teacher::getSubject,
@@ -142,4 +141,42 @@ public class TeacherController {
         }
         return "fail";
     }
+
+    @DeleteMapping("/delete/{id}")
+    public boolean deleteTeacherById(@PathVariable Integer id) {
+        if (id != null && id >= 0) {
+            boolean removeTeacher = teachers.removeIf(teacher -> teacher.getId().equals(id));
+            return removeTeacher;
+        }
+        return false;
+    }
+
+    @DeleteMapping("/delete-by-subject/{subject}")
+    public Integer countTeacherBySubject(@PathVariable String subject) {
+
+        int count = 0;
+        List<Teacher> remove = new ArrayList<>();
+        for(Teacher teacher : teachers){
+            if (teacher.getSubject().equalsIgnoreCase(subject)) {
+                remove.add(teacher);
+                count++;
+            }
+        }
+        teachers.removeAll(remove);
+        return count;
+    }
+    @DeleteMapping("/delete-inactive")
+    public Integer deleteInactive(){
+        int count =0;
+        List<Teacher> remove = new ArrayList<>();
+        for(Teacher teacher : teachers){
+            if (teacher.getAtive() == false){
+                remove.add(teacher);
+                count++;
+            }
+        }
+        teachers.removeAll(remove);
+        return count;
+    }
+
 }
