@@ -19,11 +19,11 @@ public class TeacherController {
 
     {
         teachers = new ArrayList<>();
-        teachers.add(new Teacher("Жора", "Абдулаев", "Математика", 10, 1000.0, "1", true));
+        teachers.add(new Teacher("Жора", "Абдулаев", "Математика", 10, 1000.0, "1", false));
         teachers.add(new Teacher("Саша", "Абдулаев", "Физкультура", 2, 200.0, "2", false));
         teachers.add(new Teacher("Жора", "Григорьев", "Математика", 3, 300.0, "2", true));
         teachers.add(new Teacher("Гена", "Петров", "Литература", 4, 400.0, "2", false));
-        teachers.add(new Teacher("Вася", "Ельшин", "Физика", 6, 600.0, "2", false));
+        teachers.add(new Teacher("Сергей", "Ельшин", "Физика", 6, 9990.0, "2", false));
     }
 
     @GetMapping("/all")
@@ -142,6 +142,48 @@ public class TeacherController {
         return "fail";
     }
 
+    @PatchMapping("/deactivate/{id}")
+    public String  deactivate(@PathVariable Integer id){
+        if (teachers.stream().anyMatch(teacher -> teacher.getId().equals(id))) {
+            teachers.stream()
+                    .filter(teacher -> teacher.getId().equals(id))
+                    .forEach(teacher ->  teacher.setAtive(false));
+            return  "success";
+        }
+        return  "fail";
+    }
+
+    @PatchMapping("/activate/{id}")
+    public String  activate(@PathVariable Integer id){
+        if (teachers.stream().anyMatch(teacher -> teacher.getId().equals(id))) {
+            teachers.stream()
+                    .filter(teacher -> teacher.getId().equals(id))
+                    .forEach(teacher ->  teacher.setAtive(true));
+            return  "success";
+        }
+        return  "fail";
+    }
+    @PatchMapping("/increase-salary/{id}")
+    public String upSalary(@PathVariable Integer id,
+                           @RequestParam Integer percent) {
+        if (percent < 0 || percent >= 100) {
+            return "fail";
+        }
+        boolean isValidSalary = teachers.stream()
+                .filter(teacher -> teacher.getId().equals(id))
+                .map(teacher -> teacher.getSalary() * (1 + percent / 100.0))
+                .allMatch(newSalary -> newSalary <= 100000.0);
+        if (!isValidSalary) {
+            return  "fail";
+        }
+        teachers.stream()
+                .filter(teacher -> teacher.getId().equals(id))
+                .forEach(teacher -> {
+                    teacher.setSalary(teacher.getSalary() * (1 + percent / 100.0));
+                });
+        return  "success";
+    }
+
     @DeleteMapping("/delete/{id}")
     public boolean deleteTeacherById(@PathVariable Integer id) {
         if (id != null && id >= 0) {
@@ -156,7 +198,7 @@ public class TeacherController {
 
         int count = 0;
         List<Teacher> remove = new ArrayList<>();
-        for(Teacher teacher : teachers){
+        for (Teacher teacher : teachers) {
             if (teacher.getSubject().equalsIgnoreCase(subject)) {
                 remove.add(teacher);
                 count++;
@@ -165,12 +207,13 @@ public class TeacherController {
         teachers.removeAll(remove);
         return count;
     }
+
     @DeleteMapping("/delete-inactive")
-    public Integer deleteInactive(){
-        int count =0;
+    public Integer deleteInactive() {
+        int count = 0;
         List<Teacher> remove = new ArrayList<>();
-        for(Teacher teacher : teachers){
-            if (teacher.getAtive() == false){
+        for (Teacher teacher : teachers) {
+            if (teacher.getAtive() == false) {
                 remove.add(teacher);
                 count++;
             }
@@ -178,5 +221,4 @@ public class TeacherController {
         teachers.removeAll(remove);
         return count;
     }
-
 }
